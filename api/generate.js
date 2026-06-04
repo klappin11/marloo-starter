@@ -1,67 +1,78 @@
-// Backend function — OpenRouter version.
-// Runs on Vercel's SERVERS, so your API key stays secret (never in the browser).
-// Vercel turns this file into:  yoursite.vercel.app/api/generate
+// Backend function (OpenRouter). Runs on Vercel's servers, so the key stays secret.
+// Vercel turns this into:  yoursite.vercel.app/api/generate
 
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
+  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  // Reads your OpenRouter key from Vercel's settings (you'll add it in the dashboard).
   const apiKey = process.env.OPENROUTER_API_KEY;
-  if (!apiKey) {
-    return res.status(500).json({ error: "Missing OPENROUTER_API_KEY in Vercel settings." });
-  }
+  if (!apiKey) return res.status(500).json({ error: "Missing OPENROUTER_API_KEY in Vercel settings." });
 
-  const adviser = (req.body && req.body.adviser) || {};
+  const a = (req.body && req.body.adviser) || {};
 
-  // The instruction to the AI. This is where your GTM thinking lives.
-  const systemPrompt = `You are the conversion strategist for Marloo, an AI platform for financial advisers.
-Marloo records client meetings and turns them into compliant file notes and advice documents.
-Trials convert when an adviser experiences value (a file note from a real meeting), and the biggest
-revenue comes from a solo adviser rolling Marloo out to their whole firm (Marloo Teams).
-Advisers are cautious about client-data security and compliance, so be honest and never pushy.
+  const systemPrompt = `You are the inbound conversion strategist for Marloo, an AI platform for financial advisers.
 
-Given one trial adviser, write a short conversion play in plain text with three labelled parts:
-1. DIAGNOSIS — where they are and what's blocking them (1-2 sentences).
-2. PLAY — the single best next move and why (1-2 sentences).
-3. DRAFT OUTREACH — a short message to send, in a calm adviser-to-adviser tone, no hype.`;
+WHAT MARLOO IS: it records client meetings and turns them into compliant file notes, advice documents, tasks, forms, emails, and a persistent per-client knowledge base. It starts free and self-serve, billed per firm. "Marloo Teams" adds firm-wide compliance oversight. Buyers are advisers, planners and paraplanners across wealth, mortgage and insurance advice — conservative, regulated, cautious about client-data handling.
 
-  const userPrompt = `Adviser: ${adviser.name}
-Role: ${adviser.role}
-Behaviour: ${adviser.signal}`;
+HOW CONVERSION WORKS (use this):
+1. ACTIVATION is the first file note from a real client meeting, NOT signup. An adviser who hasn't recorded a meeting hasn't seen value; the job is getting them there.
+2. STICKINESS comes from using it across several clients.
+3. EXPANSION is the real revenue engine: solo adviser -> firm-wide (Teams) rollout. A heavy solo power-user near trial end is an expansion opportunity.
+4. THE DOMINANT BLOCKER is trust: data security, retention/deletion, compliance. When that's the real objection, lead with concrete proof (SOC 2 Type 2, GDPR, auto-delete of recordings) before any feature pitch.
+5. TAILOR to sub-vertical (a mortgage adviser needs fact-find notes, not wealth framing).
+
+Be specific to THIS adviser, reference their actual behaviour, sound like Marloo (plain, respectful, adviser-to-adviser, no hype, no emoji, never pushy with a compliance-anxious buyer).
+
+Respond with ONLY a JSON object, no markdown:
+{
+ "funnel_stage": "<short phrase>",
+ "conversion_likelihood": "<Low | Medium | High>",
+ "primary_blocker": "<1-2 sentences>",
+ "recommended_play": "<2-3 sentences: the next-best-action and why it fits this adviser>",
+ "outreach_channel": "<Email | In-app message | Sales call>",
+ "outreach_subject": "<subject if Email, else empty string>",
+ "outreach_message": "<the actual drafted outreach, ready to send>"
+}`;
+
+  const userPrompt = `Trial adviser:
+Name: ${a.name}
+Role: ${a.role}
+Sub-vertical: ${a.vertical}
+Region: ${a.region}
+Trial day (of 14): ${a.trial_day}    Days left: ${a.trial_left}
+Meetings recorded: ${a.meetings}    Active clients: ${a.clients}
+Invited teammates: ${a.team_invited ? "yes" : "no"}
+Behaviour / signal: ${a.signal}`;
 
   try {
     const r = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
-      headers: {
-        "Authorization": `Bearer ${apiKey}`,   // <-- OpenRouter uses "Bearer <key>"
-        "Content-Type": "application/json"
-        // Optional, OpenRouter likes these but they're not required:
-        // "HTTP-Referer": "https://your-site.vercel.app",
-        // "X-Title": "Marloo Conversion Agent"
-      },
+      headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        // Copy the EXACT slug from openrouter.ai/models (use the copy button).
-        // Examples: "anthropic/claude-haiku-4.5", "openai/gpt-4o-mini", or
-        // "openrouter/auto" to let OpenRouter pick for you.
-        model: "google/gemini-3.1-pro-preview",
-        max_tokens: 700,
+        // Copy the exact slug from openrouter.ai/models. Avoid "thinking"/reasoning
+        // variants here — they spend tokens on hidden reasoning and can truncate the answer.
+        model: "anthropic/claude-haiku-4.5",
+        max_tokens: 1500,
+        response_format: { type: "json_object" }, // ask for guaranteed-valid JSON
         messages: [
-          { role: "system", content: systemPrompt },  // system prompt is just the first message here
+          { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt }
         ]
       })
     });
 
     const data = await r.json();
-    if (!r.ok) {
-      return res.status(502).json({ error: (data.error && data.error.message) || "AI request failed" });
-    }
+    if (!r.ok) return res.status(502).json({ error: (data.error && data.error.message) || "AI request failed" });
 
-    // OpenRouter (OpenAI-style) puts the answer here:
-    const play = (data.choices && data.choices[0] && data.choices[0].message.content || "").trim();
-    return res.status(200).json({ play });
+    let text = (data.choices && data.choices[0] && data.choices[0].message.content || "").trim();
+    text = text.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```$/i, "").trim();
+
+    let play;
+    try { play = JSON.parse(text); }
+    catch (e) {
+      play = { funnel_stage: "—", conversion_likelihood: "Medium", primary_blocker: "(Model returned unstructured text.)",
+        recommended_play: text.slice(0, 500), outreach_channel: "Email", outreach_subject: "", outreach_message: text };
+    }
+    return res.status(200).json(play);
   } catch (e) {
     return res.status(500).json({ error: e.message });
   }
