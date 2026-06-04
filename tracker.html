@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Marloo · Conversion Pipeline</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root{--paper:#f6f3ec;--surface:#fffdf8;--ink:#1b1a16;--muted:#6f6b60;--faint:#9b9789;--line:#e4ddcf;--accent:#0f5c4e;--accent-soft:#e4efe9;--hot:#b5611a;--hot-soft:#f4e7d6;--cool:#436a8c;--cool-soft:#e3eaf0;--good:#2f7d4f;--good-soft:#e2efe6;--shadow:0 1px 2px rgba(27,26,22,.04),0 8px 28px rgba(27,26,22,.06)}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--paper);color:var(--ink);font-family:"IBM Plex Sans",sans-serif;-webkit-font-smoothing:antialiased;background-image:radial-gradient(circle at 16% -10%,rgba(15,92,78,.05),transparent 45%),radial-gradient(circle at 105% 6%,rgba(181,97,26,.045),transparent 40%);min-height:100vh}
+  .mono{font-family:"IBM Plex Mono",monospace}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 26px}
+  nav{display:flex;align-items:center;justify-content:space-between;padding:22px 0 0}
+  .brand{font-family:"Fraunces",serif;font-weight:600;font-size:18px}.brand span{color:var(--accent)}
+  .navlinks{display:flex;gap:6px}.navlinks a{font-size:13px;color:var(--muted);text-decoration:none;padding:7px 13px;border-radius:8px}
+  .navlinks a.active{background:var(--surface);color:var(--ink);border:1px solid var(--line)}
+  header{padding:30px 0 0}
+  .eyebrow{font-family:"IBM Plex Mono";font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:13px;display:flex;align-items:center;gap:10px}
+  .eyebrow::before{content:"";width:26px;height:1px;background:var(--accent)}
+  h1{font-family:"Fraunces",serif;font-weight:500;font-size:clamp(26px,3.8vw,38px);line-height:1.07;letter-spacing:-.01em}
+  .sub{margin-top:13px;max-width:66ch;color:var(--muted);font-size:15px;line-height:1.6}
+  .summary{display:flex;gap:12px;margin:24px 0 20px;flex-wrap:wrap}
+  .sumcard{background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:14px 18px;box-shadow:var(--shadow);min-width:130px}
+  .sumcard .n{font-family:"Fraunces",serif;font-size:26px;font-weight:500}
+  .sumcard .l{font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--faint);margin-top:2px}
+  .n-good{color:var(--good)}.n-acc{color:var(--accent)}.n-hot{color:var(--hot)}
+  .banner{background:var(--good-soft);border:1px solid #b9d9c4;border-radius:12px;padding:14px 18px;margin-bottom:20px;font-size:14px;color:#1f5b39;line-height:1.5;display:none}
+  .banner b{color:var(--good)}
+  .list{display:flex;flex-direction:column;gap:11px;padding-bottom:60px}
+  .client{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow)}
+  .client.act{border-color:var(--good);box-shadow:0 0 0 1px var(--good),var(--shadow)}
+  .client.dead{opacity:.66}
+  .ctop{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+  .cname{font-weight:600;font-size:15.5px}.cmeta{color:var(--muted);font-size:12.5px;margin-top:1px}
+  .rightcol{text-align:right;white-space:nowrap}
+  .status{display:inline-block;font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.04em;text-transform:uppercase;padding:5px 9px;border-radius:999px}
+  .s-act{background:var(--good-soft);color:var(--good)}.s-warm{background:var(--accent-soft);color:var(--accent)}
+  .s-cool{background:var(--cool-soft);color:var(--cool)}.s-dead{background:#ece8de;color:var(--faint)}
+  .deal{font-family:"IBM Plex Mono";font-size:13px;font-weight:500;margin-top:6px}
+  .deal .plan{color:var(--accent)}
+  .cstats{display:flex;gap:18px;margin-top:13px;flex-wrap:wrap}
+  .cstat{font-size:11.5px;color:var(--faint)}.cstat b{display:block;font-family:"IBM Plex Mono";font-size:13.5px;color:var(--ink);font-weight:500;margin-top:1px}
+  .bar{margin-top:13px;height:7px;background:var(--paper);border-radius:99px;overflow:hidden;border:1px solid var(--line)}
+  .bar i{display:block;height:100%;border-radius:99px}
+  .note{margin-top:11px;font-size:12.5px;border-radius:8px;padding:9px 11px;display:flex;gap:8px;align-items:flex-start}
+  .note svg{flex-shrink:0;margin-top:1px}
+  .note.go{background:var(--good-soft);color:#1f5b39}
+  .note.stop{background:#ece8de;color:var(--muted)}
+  .cactions{display:flex;gap:8px;margin-top:13px}
+  .cactions button{font-family:"IBM Plex Sans";font-size:12px;border-radius:8px;padding:7px 11px;cursor:pointer;border:1px solid var(--line);background:var(--paper);color:var(--muted)}
+  .cactions .view{border-color:var(--accent);color:var(--accent)}
+  .playbox{margin-top:13px;border-top:1px dashed var(--line);padding-top:13px;display:none}
+  .playbox h5{font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin:10px 0 5px}
+  .playbox p{font-size:13.5px;line-height:1.55}
+  .playbox .draft{background:var(--paper);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:9px;padding:12px 14px;white-space:pre-wrap;font-size:13.5px;line-height:1.55;margin-top:5px}
+  .empty{background:var(--surface);border:1px dashed var(--line);border-radius:14px;padding:50px 30px;text-align:center;color:var(--faint)}.empty a{color:var(--accent);font-weight:600;text-decoration:none}
+  footer{padding:0 0 50px;color:var(--faint)}.disc{font-family:"IBM Plex Mono";font-size:10.5px;letter-spacing:.04em}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav><div class="brand">Marloo<span>·</span>Free→Paid Agent</div>
+    <div class="navlinks"><a href="index.html">Work a lead</a><a href="tracker.html" class="active">Pipeline</a></div></nav>
+  <header>
+    <div class="eyebrow">Conversion pipeline</div>
+    <h1>Free→Paid Pipeline</h1>
+    <p class="sub">Every saved free-tier adviser, ranked by what to work now — deal value × likelihood × how close they are to the meeting cap. Hot leads at the cap rise to the top; long-inactive, never-activated advisers drop to the bottom where they belong.</p>
+  </header>
+  <div class="summary" id="summary"></div>
+  <div class="banner" id="banner"></div>
+  <div class="list" id="list"></div>
+  <footer><p class="disc">Synthetic, candidate-built concept · model is a transparent rule (see shared.js) · firm potential = plan price × advisers, weighted by likelihood.</p></footer>
+</div>
+
+<script src="shared.js"></script>
+<script>
+function esc(s){return String(s==null?"":s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));}
+const toneColor={act:"#2f7d4f",warm:"#0f5c4e",cool:"#436a8c",dead:"#9b9789"};
+const toneClass={act:"s-act",warm:"s-warm",cool:"s-cool",dead:"s-dead"};
+function money(n){return "$"+Number(n).toLocaleString();}
+
+function render(){
+  const rows=loadClients().map(c=>({c,a:assessLead(c)}));
+  rows.sort((x,y)=>y.a.priority-x.a.priority); // work-this-now first
+  const el=document.getElementById("list"),sumEl=document.getElementById("summary"),banner=document.getElementById("banner");
+
+  if(rows.length===0){sumEl.innerHTML="";banner.style.display="none";
+    el.innerHTML='<div class="empty">No leads yet.<br>Go to <a href="index.html">Work a lead</a>, set up an adviser and hit "Save to Pipeline" — or use the demo Sync button there.</div>';return;}
+
+  const convertNow=rows.filter(x=>x.a.score>=70);
+  const weighted=rows.reduce((s,x)=>s+x.a.dealValue*(x.a.score/100),0);
+  const potential=rows.reduce((s,x)=>s+x.a.dealValue,0);
+  sumEl.innerHTML=`
+    <div class="sumcard"><div class="n">${rows.length}</div><div class="l">Free leads</div></div>
+    <div class="sumcard"><div class="n n-good">${convertNow.length}</div><div class="l">Convert now</div></div>
+    <div class="sumcard"><div class="n n-acc">${money(Math.round(weighted))}</div><div class="l">Weighted /mo</div></div>
+    <div class="sumcard"><div class="n n-acc">${money(potential)}</div><div class="l">Firm potential /mo</div></div>`;
+
+  if(convertNow.length>0){const v=convertNow.reduce((s,x)=>s+x.a.dealValue,0);
+    banner.style.display="block";banner.innerHTML=`<b>${convertNow.length} lead${convertNow.length>1?"s are":" is"} at or near the cap — work ${convertNow.length>1?"these":"this"} today.</b> ${money(v)}/mo of firm potential sitting at high likelihood.`;}
+  else banner.style.display="none";
+
+  el.innerHTML=rows.map(({c,a})=>{
+    const note = a.score>=70
+      ? `<div class="note go"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2f7d4f" stroke-width="1.9"><path d="M20 6 9 17l-5-5"/></svg><div>At/near the 10-meeting cap and active — pitch <b>${esc(a.plan)} ($${a.planPrice}/mo)</b> now${a.enterprise?" (multi-seat firm — open an Enterprise conversation)":""}.</div></div>`
+      : a.score<22
+      ? `<div class="note stop"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9b9789" stroke-width="1.9"><path d="M18 6 6 18M6 6l12 12"/></svg><div>Conversion unlikely — never activated or long inactive. Deprioritise unless they re-engage.</div></div>`
+      : "";
+    const hasPlay=c.play&&c.play.outreach_message;
+    return `<div class="client ${a.tone==="act"?"act":a.tone==="dead"?"dead":""}">
+      <div class="ctop">
+        <div><div class="cname">${esc(c.name)}</div><div class="cmeta">${esc(c.role||"")}${c.vertical?" · "+esc(c.vertical):""}</div></div>
+        <div class="rightcol"><span class="status ${toneClass[a.tone]}">${esc(a.state)}</span><div class="deal"><span class="plan">${esc(a.plan)}</span> · ${money(a.dealValue)}/mo</div></div>
+      </div>
+      <div class="cstats">
+        <div class="cstat">Meetings used<b>${c.meetings||0}/10</b></div>
+        <div class="cstat">Advice docs<b>${c.docs||0}</b></div>
+        <div class="cstat">Advisers<b>${c.advisers||1}</b></div>
+        <div class="cstat">Last active<b>${(c.daysInactive||0)===0?"today":(c.daysInactive)+"d ago"}</b></div>
+        <div class="cstat">Conversion<b>${a.score}%</b></div>
+      </div>
+      <div class="bar"><i style="width:${a.score}%;background:${toneColor[a.tone]}"></i></div>
+      ${note}
+      <div class="cactions">${hasPlay?`<button class="view" onclick="togglePlay(this)">View play</button>`:``}<button onclick="del('${esc(c.id)}')">Remove</button></div>
+      ${hasPlay?`<div class="playbox"><h5>Recommended play (${esc(c.play.recommended_plan||a.plan)})</h5><p>${esc(c.play.recommended_play)}</p><h5>Drafted outreach</h5><div class="draft">${c.play.outreach_subject?"Subject: "+esc(c.play.outreach_subject)+"\n\n":""}${esc(c.play.outreach_message)}</div></div>`:``}
+    </div>`;
+  }).join("");
+}
+function togglePlay(btn){const box=btn.closest(".client").querySelector(".playbox");const open=box.style.display==="block";box.style.display=open?"none":"block";btn.textContent=open?"View play":"Hide play";}
+function del(id){removeClient(id);render();}
+render();
+</script>
+</body>
+</html>
