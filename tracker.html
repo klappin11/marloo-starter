@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Marloo · Trial Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root{--paper:#f6f3ec;--surface:#fffdf8;--ink:#1b1a16;--muted:#6f6b60;--faint:#9b9789;--line:#e4ddcf;--accent:#0f5c4e;--accent-soft:#e4efe9;--hot:#b5611a;--hot-soft:#f4e7d6;--cool:#436a8c;--cool-soft:#e3eaf0;--good:#2f7d4f;--good-soft:#e2efe6;--shadow:0 1px 2px rgba(27,26,22,.04),0 8px 28px rgba(27,26,22,.06)}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--paper);color:var(--ink);font-family:"IBM Plex Sans",sans-serif;-webkit-font-smoothing:antialiased;background-image:radial-gradient(circle at 16% -10%,rgba(15,92,78,.05),transparent 45%),radial-gradient(circle at 105% 6%,rgba(181,97,26,.045),transparent 40%);min-height:100vh}
+  .mono{font-family:"IBM Plex Mono",monospace}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 26px}
+  nav{display:flex;align-items:center;justify-content:space-between;padding:22px 0 0}
+  .brand{font-family:"Fraunces",serif;font-weight:600;font-size:18px}.brand span{color:var(--accent)}
+  .navlinks{display:flex;gap:6px}
+  .navlinks a{font-size:13px;color:var(--muted);text-decoration:none;padding:7px 13px;border-radius:8px}
+  .navlinks a.active{background:var(--surface);color:var(--ink);border:1px solid var(--line)}
+  header{padding:30px 0 0}
+  .eyebrow{font-family:"IBM Plex Mono";font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:13px;display:flex;align-items:center;gap:10px}
+  .eyebrow::before{content:"";width:26px;height:1px;background:var(--accent)}
+  h1{font-family:"Fraunces",serif;font-weight:500;font-size:clamp(26px,3.8vw,38px);line-height:1.07;letter-spacing:-.01em}
+  .sub{margin-top:13px;max-width:64ch;color:var(--muted);font-size:15px;line-height:1.6}
+  .summary{display:flex;gap:12px;margin:24px 0 22px;flex-wrap:wrap}
+  .sumcard{background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:14px 18px;box-shadow:var(--shadow);min-width:120px}
+  .sumcard .n{font-family:"Fraunces",serif;font-size:28px;font-weight:500}
+  .sumcard .l{font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin-top:2px}
+  .n-good{color:var(--good)}.n-risk{color:var(--hot)}.n-mid{color:var(--accent)}
+  .flag-banner{background:var(--hot-soft);border:1px solid #e8cba5;border-radius:12px;padding:14px 18px;margin-bottom:20px;font-size:14px;color:#7a3f10;line-height:1.5;display:none}
+  .flag-banner b{color:var(--hot)}
+  .list{display:flex;flex-direction:column;gap:11px;padding-bottom:60px}
+  .client{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow)}
+  .client.flagged{border-color:var(--hot);box-shadow:0 0 0 1px var(--hot),var(--shadow)}
+  .ctop{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+  .cname{font-weight:600;font-size:15.5px}.cmeta{color:var(--muted);font-size:12.5px;margin-top:1px}
+  .status{font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.04em;text-transform:uppercase;padding:5px 9px;border-radius:999px;white-space:nowrap}
+  .s-good{background:var(--good-soft);color:var(--good)}
+  .s-warm{background:var(--accent-soft);color:var(--accent)}
+  .s-cool{background:var(--cool-soft);color:var(--cool)}
+  .s-hot{background:var(--hot-soft);color:var(--hot)}
+  .cstats{display:flex;gap:18px;margin-top:13px;flex-wrap:wrap}
+  .cstat{font-size:11.5px;color:var(--faint)}.cstat b{display:block;font-family:"IBM Plex Mono";font-size:13.5px;color:var(--ink);font-weight:500;margin-top:1px}
+  .bar{margin-top:13px;height:7px;background:var(--paper);border-radius:99px;overflow:hidden;border:1px solid var(--line)}
+  .bar i{display:block;height:100%;border-radius:99px}
+  .flag-note{margin-top:12px;font-size:12.5px;color:#7a3f10;background:var(--hot-soft);border-radius:8px;padding:9px 11px;display:flex;gap:8px;align-items:flex-start}
+  .flag-note svg{flex-shrink:0;margin-top:1px}
+  .cactions{display:flex;gap:8px;margin-top:13px}
+  .cactions button{font-family:"IBM Plex Sans";font-size:12px;border-radius:8px;padding:7px 11px;cursor:pointer;border:1px solid var(--line);background:var(--paper);color:var(--muted)}
+  .cactions .view{border-color:var(--accent);color:var(--accent)}
+  .playbox{margin-top:13px;border-top:1px dashed var(--line);padding-top:13px;display:none}
+  .playbox h5{font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin:10px 0 5px}
+  .playbox p{font-size:13.5px;line-height:1.55}
+  .playbox .draft{background:var(--paper);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:9px;padding:12px 14px;white-space:pre-wrap;font-size:13.5px;line-height:1.55;margin-top:5px}
+  .empty{background:var(--surface);border:1px dashed var(--line);border-radius:14px;padding:50px 30px;text-align:center;color:var(--faint)}
+  .empty a{color:var(--accent);font-weight:600;text-decoration:none}
+  footer{padding:0 0 50px;color:var(--faint)}.disc{font-family:"IBM Plex Mono";font-size:10.5px;letter-spacing:.04em}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav>
+    <div class="brand">Marloo<span>·</span>Inbound Agent</div>
+    <div class="navlinks"><a href="index.html">Build</a><a href="tracker.html" class="active">Tracker</a></div>
+  </nav>
+
+  <header>
+    <div class="eyebrow">Trial pipeline</div>
+    <h1>Trial Tracker</h1>
+    <p class="sub">Every saved trial adviser, sorted by conversion risk. The agent flags advisers who pass the <b>outreach threshold</b> — the point in the trial where, without activation, conversion becomes unlikely and a human needs to step in.</p>
+  </header>
+
+  <div class="summary" id="summary"></div>
+  <div class="flag-banner" id="flagBanner"></div>
+  <div class="list" id="list"></div>
+
+  <footer><p class="disc">Synthetic, candidate-built concept · risk model is a transparent rule (see shared.js) — not connected to Marloo systems.</p></footer>
+</div>
+
+<script src="shared.js"></script>
+<script>
+function esc(s){return String(s==null?"":s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));}
+const toneColor={good:"#2f7d4f",warm:"#0f5c4e",cool:"#436a8c",hot:"#b5611a"};
+const toneClass={good:"s-good",warm:"s-warm",cool:"s-cool",hot:"s-hot"};
+
+function render(){
+  const list=loadClients().map(c=>({c,a:assessClient(c)}));
+  list.sort((x,y)=>x.a.score-y.a.score); // most at-risk first
+  const el=document.getElementById("list");
+  const sumEl=document.getElementById("summary");
+  const banner=document.getElementById("flagBanner");
+
+  if(list.length===0){
+    sumEl.innerHTML="";banner.style.display="none";
+    el.innerHTML='<div class="empty">No advisers tracked yet.<br>Go to <a href="index.html">Build</a>, set up an adviser and hit "Save to Tracker" — or use the demo Sync button there.</div>';
+    return;
+  }
+
+  const healthy=list.filter(x=>x.a.score>=70).length;
+  const flagged=list.filter(x=>x.a.score<20).length;
+  const mid=list.length-healthy-flagged;
+  sumEl.innerHTML=`
+    <div class="sumcard"><div class="n">${list.length}</div><div class="l">In trial</div></div>
+    <div class="sumcard"><div class="n n-good">${healthy}</div><div class="l">Healthy</div></div>
+    <div class="sumcard"><div class="n n-mid">${mid}</div><div class="l">Needs a nudge</div></div>
+    <div class="sumcard"><div class="n n-risk">${flagged}</div><div class="l">Past threshold</div></div>`;
+
+  if(flagged>0){banner.style.display="block";banner.innerHTML=`<b>${flagged} adviser${flagged>1?"s have":" has"} passed the outreach threshold.</b> They are running out of trial without having activated — reach out now or they're likely lost.`;}
+  else banner.style.display="none";
+
+  el.innerHTML=list.map(({c,a})=>{
+    const flagged=a.score<20;
+    const flagNote=a.pastThreshold?`<div class="flag-note"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#b5611a" stroke-width="1.8"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg><div>Passed the day-${a.thresholdDay} outreach threshold without activating (no first file note). Conversion now unlikely — human outreach needed.</div></div>`:"";
+    const hasPlay=c.play&&c.play.outreach_message;
+    return `<div class="client ${flagged?"flagged":""}">
+      <div class="ctop">
+        <div><div class="cname">${esc(c.name)}</div><div class="cmeta">${esc(c.role||"")}${c.vertical?" · "+esc(c.vertical):""}</div></div>
+        <div class="status ${toneClass[a.tone]}">${esc(a.status)}</div>
+      </div>
+      <div class="cstats">
+        <div class="cstat">Trial<b>Day ${c.trial_day||0}/14 · ${a.left} left</b></div>
+        <div class="cstat">Meetings<b>${c.meetings||0}</b></div>
+        <div class="cstat">Clients<b>${c.clients||0}</b></div>
+        <div class="cstat">Conversion<b>${a.score}%</b></div>
+      </div>
+      <div class="bar"><i style="width:${a.score}%;background:${toneColor[a.tone]}"></i></div>
+      ${flagNote}
+      <div class="cactions">
+        ${hasPlay?`<button class="view" onclick="togglePlay(this)">View play</button>`:``}
+        <button onclick="del('${esc(c.id)}')">Remove</button>
+      </div>
+      ${hasPlay?`<div class="playbox">
+        <h5>Recommended play</h5><p>${esc(c.play.recommended_play)}</p>
+        <h5>Drafted outreach</h5><div class="draft">${c.play.outreach_subject?"Subject: "+esc(c.play.outreach_subject)+"\n\n":""}${esc(c.play.outreach_message)}</div>
+      </div>`:``}
+    </div>`;
+  }).join("");
+}
+function togglePlay(btn){const box=btn.closest(".client").querySelector(".playbox");const open=box.style.display==="block";box.style.display=open?"none":"block";btn.textContent=open?"View play":"Hide play";}
+function del(id){removeClient(id);render();}
+render();
+</script>
+</body>
+</html>
