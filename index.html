@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Marloo Conversion Agent — starter</title>
+  <style>
+    /* This is the styling. Keep it simple for now. */
+    body { font-family: system-ui, sans-serif; max-width: 640px; margin: 40px auto; padding: 0 20px; color: #1b1a16; line-height: 1.5; }
+    h1 { font-size: 24px; }
+    .card { background: #f6f3ec; border: 1px solid #e4ddcf; border-radius: 12px; padding: 18px; margin: 20px 0; }
+    button { background: #0f5c4e; color: #fff; border: none; border-radius: 10px; padding: 13px 18px; font-size: 15px; cursor: pointer; }
+    button:disabled { opacity: .6; }
+    #output { white-space: pre-wrap; margin-top: 20px; padding: 18px; border-left: 3px solid #0f5c4e; background: #f6f3ec; border-radius: 8px; display: none; }
+  </style>
+</head>
+<body>
+  <h1>Marloo · Inbound Conversion Agent (starter)</h1>
+  <p>A trial adviser. Click the button and the AI will diagnose them and draft a conversion play.</p>
+
+  <!-- This card just shows the adviser's info on the page. -->
+  <div class="card">
+    <strong>Raj Mehta</strong> — Chartered financial planner, solo<br />
+    Day 12 of 14-day trial · 14 meetings recorded · 9 active clients · no card on file<br />
+    Signal: heavy daily use, trial nearly over, mentioned colleagues who'd "love this".
+  </div>
+
+  <button id="genBtn">Generate conversion play</button>
+
+  <!-- The AI's answer will be written into this box. -->
+  <div id="output"></div>
+
+  <script>
+    // This runs in the browser. It's a bit like writing a function in R that
+    // reacts when a button is clicked.
+
+    // Describe the adviser. We'll send this to our backend.
+    const adviser = {
+      name: "Raj Mehta",
+      role: "Chartered financial planner (solo)",
+      signal: "Day 12 of 14, 14 meetings across 9 clients, no card on file. Heavy daily use. Mentioned colleagues who'd love this."
+    };
+
+    const btn = document.getElementById("genBtn");
+    const output = document.getElementById("output");
+
+    // When the button is clicked, run this function.
+    btn.addEventListener("click", async () => {
+      btn.disabled = true;
+      btn.textContent = "Thinking…";
+      output.style.display = "block";
+      output.textContent = "";
+
+      try {
+        // Send the adviser to our backend function at /api/generate.
+        // (In R this is like httr::POST with a JSON body.)
+        const res = await fetch("/api/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ adviser: adviser })
+        });
+        const data = await res.json();          // read the JSON reply
+        if (!res.ok) throw new Error(data.error || "Something went wrong");
+        output.textContent = data.play;          // show the AI's text on the page
+      } catch (e) {
+        output.textContent = "Error: " + e.message +
+          "\n\nIf you just deployed, check that ANTHROPIC_API_KEY is set in Vercel, then redeploy.";
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Generate conversion play";
+      }
+    });
+  </script>
+</body>
+</html>
