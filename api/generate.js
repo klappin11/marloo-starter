@@ -45,7 +45,7 @@ Behaviour: ${adviser.signal}`;
         // Copy the EXACT slug from openrouter.ai/models (use the copy button).
         // Examples: "anthropic/claude-haiku-4.5", "openai/gpt-4o-mini", or
         // "openrouter/auto" to let OpenRouter pick for you.
-        model: "anthropic/claude-haiku-4.5",
+        model: "google/gemini-3.1-pro-preview",
         max_tokens: 700,
         messages: [
           { role: "system", content: systemPrompt },  // system prompt is just the first message here
